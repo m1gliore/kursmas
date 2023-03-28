@@ -2,40 +2,40 @@ const month = (month) => {
     let ruMonth = ""
 
     switch (month) {
-        case 0:
+        case 1:
             ruMonth = "января"
             break
-        case 1:
+        case 2:
             ruMonth = "февраля"
             break
-        case 2:
+        case 3:
             ruMonth = "марта"
             break
-        case 3:
+        case 4:
             ruMonth = "апреля"
             break
-        case 4:
+        case 5:
             ruMonth = "мая"
             break
-        case 5:
+        case 6:
             ruMonth = "июня"
             break
-        case 6:
+        case 7:
             ruMonth = "июля"
             break
-        case 7:
+        case 8:
             ruMonth = "августа"
             break
-        case 8:
+        case 9:
             ruMonth = "сентября"
             break
-        case 9:
+        case 10:
             ruMonth = "октября"
             break
-        case 10:
+        case 11:
             ruMonth = "ноября"
             break
-        case 11:
+        case 12:
             ruMonth = "декабря"
             break
         default:
@@ -45,4 +45,33 @@ const month = (month) => {
     return ruMonth
 }
 
-export default month
+const genre = (genre) => {
+    let ruGenre = ""
+
+    switch (genre) {
+        case "HORROR":
+            ruGenre = "Хоррор"
+            break
+        case "DETECTIVE":
+            ruGenre = "Детектив"
+            break
+        case "COMEDY":
+            ruGenre = "Комедия"
+            break
+        case "ADVENTURES":
+            ruGenre = "Приключения"
+            break
+        case "CARTOON":
+            ruGenre = "Мультфильм"
+            break
+        case "THRILLER":
+            ruGenre = "Триллер"
+            break
+        default:
+            break
+    }
+
+    return ruGenre
+}
+
+export {month, genre}

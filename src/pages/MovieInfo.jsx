@@ -1,7 +1,10 @@
 import styled from "styled-components";
 import YouTube from "react-youtube";
-import moment from "moment/moment";
-import month from "../myLibrary";
+import {genre, month} from "../myLibrary";
+import {useEffect, useState} from "react";
+import {useLocation} from "react-router-dom";
+import {getMethod} from "../httpMethodsHadlers";
+import {DateTime} from "luxon";
 
 const Wrapper = styled.div``
 
@@ -101,35 +104,46 @@ const MovieInfo = () => {
         width: '325'
     }
 
+    const movieId = useLocation().pathname.split("/")[2].split("-")[0]
+    const [movie, setMovie] = useState({})
+
+    useEffect(() => {
+        getMethod(`http://localhost:8040/api/movies/findMovie/${movieId}`, [setMovie])
+    }, [movieId])
+
     return (
         <Wrapper>
             <Container>
                 <Left>
-                    <Poster src="https://webgate.24guru.by/uploads/events/thumbs/300x430/8gyuDFF3V.jpg"
-                            alt="Кот в сапогах"/>
+                    <Poster
+                        src={movieId === "123" ? "https://webgate.24guru.by/uploads/events/thumbs/300x430/8gyuDFF3V.jpg"
+                            : "https://webgate.24guru.by/uploads/events/thumbs/300x430/1mGun5cpt.jpg"}
+                        alt="Кот в сапогах"/>
                     <TrailerContainer>
-                        <YouTube videoId="XuZdVQli_3w" opts={opts} onReady={(event) => event.target.pauseVideo()}/>
+                        <YouTube videoId={movie.youtube} opts={opts} onReady={(event) => event.target.pauseVideo()}/>
                     </TrailerContainer>
                 </Left>
                 <Right>
-                    <Title>Кот в сапогах 2: Последнее желание</Title>
+                    <Title>{movie.nameMovie}</Title>
                     <DescriptionContainer>
-                        <Description>Даты показа: 27 марта - 9 апреля</Description>
-                        <Description>Длительность: 104 мин.</Description>
-                        <Description>Жанр: Комедия, Мультфильм, Приключения</Description>
-                        <Description>Стоимость: до 80.00р.</Description>
-                        <Description>Возрастные ограничения: 6+</Description>
+                        <Description>Даты показа:&nbsp;
+                            {parseInt(movie.startDate?.split("-")[2])} {month(parseInt(movie.startDate?.split("-")[1]) - 1)}
+                            &nbsp;-&nbsp;{parseInt(movie.endDate?.split("-")[2])} {month(parseInt(movie.endDate?.split("-")[1]) - 1)}</Description>
+                        <Description>Длительность: {movie.timeLong} мин.</Description>
+                        <Description>Жанры: {genre(movie.etypeMovie)}</Description>
+                        <Description>Стоимость: {movie.price}.00р.</Description>
+                        <Description>Возрастные ограничения: {movie.age}+</Description>
                     </DescriptionContainer>
                     <ScheduleContainer>
                         <Title>Расписание</Title>
                         <ScheduleDateContainer>
-                            <ScheduleDateItem>{moment()._d.getDate()} {month(moment()._d.getMonth())}</ScheduleDateItem>
-                            <ScheduleDateItem>{moment().add(1, 'days')._d.getDate()} {month(moment().add(1, 'days')._d.getMonth())}</ScheduleDateItem>
-                            <ScheduleDateItem>{moment().add(2, 'days')._d.getDate()} {month(moment().add(2, 'days')._d.getMonth())}</ScheduleDateItem>
-                            <ScheduleDateItem>{moment().add(3, 'days')._d.getDate()} {month(moment().add(3, 'days')._d.getMonth())}</ScheduleDateItem>
-                            <ScheduleDateItem>{moment().add(4, 'days')._d.getDate()} {month(moment().add(4, 'days')._d.getMonth())}</ScheduleDateItem>
-                            <ScheduleDateItem>{moment().add(5, 'days')._d.getDate()} {month(moment().add(5, 'days')._d.getMonth())}</ScheduleDateItem>
-                            <ScheduleDateItem>{moment().add(6, 'days')._d.getDate()} {month(moment().add(6, 'days')._d.getMonth())}</ScheduleDateItem>
+                            <ScheduleDateItem>{DateTime.now().day} {month(DateTime.now().month)}</ScheduleDateItem>
+                            <ScheduleDateItem>{DateTime.now().plus({days: 1}).day} {month(DateTime.now().plus({days: 1}).month)}</ScheduleDateItem>
+                            <ScheduleDateItem>{DateTime.now().plus({days: 2}).day} {month(DateTime.now().plus({days: 2}).month)}</ScheduleDateItem>
+                            <ScheduleDateItem>{DateTime.now().plus({days: 3}).day} {month(DateTime.now().plus({days: 3}).month)}</ScheduleDateItem>
+                            <ScheduleDateItem>{DateTime.now().plus({days: 4}).day} {month(DateTime.now().plus({days: 4}).month)}</ScheduleDateItem>
+                            <ScheduleDateItem>{DateTime.now().plus({days: 5}).day} {month(DateTime.now().plus({days: 5}).month)}</ScheduleDateItem>
+                            <ScheduleDateItem>{DateTime.now().plus({days: 6}).day} {month(DateTime.now().plus({days: 6}).month)}</ScheduleDateItem>
                         </ScheduleDateContainer>
                     </ScheduleContainer>
                     <Button>Приобрести</Button>

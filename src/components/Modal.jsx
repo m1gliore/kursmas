@@ -17,7 +17,7 @@ const ModalWindow = styled.div`
 `
 
 const ModalWindowContent = styled.div`
-  width: 25vw;
+  width: fit-content;
   padding: 20px;
   border-radius: 12px;
   background-color: #fff;

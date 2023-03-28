@@ -1,7 +1,6 @@
 import styled from "styled-components";
 import {useState} from "react";
 import Modal from "../components/Modal";
-import moment from "moment";
 
 const Wrapper = styled.div`
   margin: 1vw 5vw;
@@ -138,8 +137,6 @@ const Profile = () => {
 
     const [currentWindow, setCurrentWindow] = useState("paid")
     const [modalActive, setModalActive] = useState(false)
-
-    console.log(moment()._d.getMonth())
 
     return (
         <Wrapper>
