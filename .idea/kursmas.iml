@@ -9,5 +9,8 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="library" name="@types/youtube-player" level="application" />
+    <orderEntry type="library" name="@types/youtube" level="application" />
+    <orderEntry type="library" name="@types/youtube-dl" level="application" />
   </component>
 </module>
