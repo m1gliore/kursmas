@@ -1,5 +1,7 @@
 import styled from "styled-components";
 import YouTube from "react-youtube";
+import moment from "moment/moment";
+import month from "../myLibrary";
 
 const Wrapper = styled.div``
 
@@ -121,13 +123,13 @@ const MovieInfo = () => {
                     <ScheduleContainer>
                         <Title>Расписание</Title>
                         <ScheduleDateContainer>
-                            <ScheduleDateItem>28 марта</ScheduleDateItem>
-                            <ScheduleDateItem>29 марта</ScheduleDateItem>
-                            <ScheduleDateItem>30 марта</ScheduleDateItem>
-                            <ScheduleDateItem>31 марта</ScheduleDateItem>
-                            <ScheduleDateItem>1 апреля</ScheduleDateItem>
-                            <ScheduleDateItem>2 апреля</ScheduleDateItem>
-                            <ScheduleDateItem>3 апреля</ScheduleDateItem>
+                            <ScheduleDateItem>{moment()._d.getDate()} {month(moment()._d.getMonth())}</ScheduleDateItem>
+                            <ScheduleDateItem>{moment().add(1, 'days')._d.getDate()} {month(moment().add(1, 'days')._d.getMonth())}</ScheduleDateItem>
+                            <ScheduleDateItem>{moment().add(2, 'days')._d.getDate()} {month(moment().add(2, 'days')._d.getMonth())}</ScheduleDateItem>
+                            <ScheduleDateItem>{moment().add(3, 'days')._d.getDate()} {month(moment().add(3, 'days')._d.getMonth())}</ScheduleDateItem>
+                            <ScheduleDateItem>{moment().add(4, 'days')._d.getDate()} {month(moment().add(4, 'days')._d.getMonth())}</ScheduleDateItem>
+                            <ScheduleDateItem>{moment().add(5, 'days')._d.getDate()} {month(moment().add(5, 'days')._d.getMonth())}</ScheduleDateItem>
+                            <ScheduleDateItem>{moment().add(6, 'days')._d.getDate()} {month(moment().add(6, 'days')._d.getMonth())}</ScheduleDateItem>
                         </ScheduleDateContainer>
                     </ScheduleContainer>
                     <Button>Приобрести</Button>
