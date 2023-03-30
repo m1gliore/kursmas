@@ -2,9 +2,11 @@ import styled from "styled-components";
 import YouTube from "react-youtube";
 import {genre, month} from "../myLibrary";
 import {useEffect, useState} from "react";
-import {useLocation} from "react-router-dom";
-import {getMethod} from "../httpMethodsHadlers";
+import {useLocation, useNavigate} from "react-router-dom";
+import {deleteMethod, getMethod} from "../httpMethodsHadlers";
 import {DateTime} from "luxon";
+import {Delete} from "@mui/icons-material";
+import Modal from "../components/Modal";
 
 const Wrapper = styled.div``
 
@@ -51,6 +53,21 @@ const DescriptionContainer = styled.div`
   gap: .5vw;
 `
 
+const TitleContainer = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+`
+
+const DeleteIcon = styled(Delete)`
+  cursor: pointer;
+  transition: .8s ease-out;
+
+  &:hover {
+    opacity: .5;
+  }
+`
+
 const Description = styled.span`
   font-size: 1.25rem;
 `
@@ -81,6 +98,44 @@ const ScheduleDateItem = styled.div`
   }
 `
 
+const CinemaRoomContainer = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 5vw;
+`
+
+const CinemaRoomSelect = styled.select`
+  min-width: 5vw;
+  min-height: 2vw;
+  width: fit-content;
+  height: fit-content;
+  outline-width: 0;
+  border-width: 0 0 .1vw 0;
+  cursor: pointer;
+`
+
+const CinemaRoomOption = styled.option``
+
+const SeatsContainer = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  width: 25vw;
+  height: fit-content;
+  gap: 1vw;
+`
+
+const Seat = styled.div`
+  width: 1.5vw;
+  height: 1.5vw;
+  background-color: ${props => props.active ? "green" : "red"};
+  border-radius: 50%;
+  cursor: pointer;
+
+  &:active {
+    opacity: .5;
+  }
+`
+
 const Button = styled.button`
   width: 10vw;
   padding: .75rem;
@@ -91,10 +146,19 @@ const Button = styled.button`
   font-size: 1rem;
   cursor: pointer;
   transition: .25s ease-out;
+  margin-bottom: 2vw;
 
   &:hover {
     opacity: 0.8;
   }
+`
+
+const ModalContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
 `
 
 const MovieInfo = () => {
@@ -106,10 +170,24 @@ const MovieInfo = () => {
 
     const movieId = useLocation().pathname.split("/")[2].split("-")[0]
     const [movie, setMovie] = useState({})
+    const [cinemaRooms, setCinemaRooms] = useState([])
+    const [modalActive, setModalActive] = useState(false)
+    const navigate = useNavigate()
 
     useEffect(() => {
         getMethod(`http://localhost:8040/api/movies/findMovie/${movieId}`, [setMovie])
+        getMethod(`http://localhost:8040/api/cinema_room/findAllCinemaRoom`, [setCinemaRooms])
     }, [movieId])
+
+    cinemaRooms.sort((a, b) => {
+        return a.number - b.number
+    })
+
+    const handleDelete = (event) => {
+        deleteMethod(event, `http://localhost:8040/api/movies/deleteMovieById/${movieId}`, {
+            id: movieId
+        }).then(() => navigate("/"))
+    }
 
     return (
         <Wrapper>
@@ -124,11 +202,14 @@ const MovieInfo = () => {
                     </TrailerContainer>
                 </Left>
                 <Right>
-                    <Title>{movie.nameMovie}</Title>
+                    <TitleContainer>
+                        <Title>{movie.nameMovie}</Title>
+                        <DeleteIcon fontSize="large" onClick={() => setModalActive(true)}/>
+                    </TitleContainer>
                     <DescriptionContainer>
                         <Description>Даты показа:&nbsp;
-                            {parseInt(movie.startDate?.split("-")[2])} {month(parseInt(movie.startDate?.split("-")[1]) - 1)}
-                            &nbsp;-&nbsp;{parseInt(movie.endDate?.split("-")[2])} {month(parseInt(movie.endDate?.split("-")[1]) - 1)}</Description>
+                            {parseInt(movie.startDate?.split("-")[2])} {month(parseInt(movie.startDate?.split("-")[1]))}
+                            &nbsp;-&nbsp;{parseInt(movie.endDate?.split("-")[2])} {month(parseInt(movie.endDate?.split("-")[1]))}</Description>
                         <Description>Длительность: {movie.timeLong} мин.</Description>
                         <Description>Жанры: {genre(movie.etypeMovie)}</Description>
                         <Description>Стоимость: {movie.price}.00р.</Description>
@@ -146,9 +227,28 @@ const MovieInfo = () => {
                             <ScheduleDateItem>{DateTime.now().plus({days: 6}).day} {month(DateTime.now().plus({days: 6}).month)}</ScheduleDateItem>
                         </ScheduleDateContainer>
                     </ScheduleContainer>
+                    <CinemaRoomContainer>
+                        <Title>Места в зале</Title>
+                        <CinemaRoomSelect>
+                            {cinemaRooms.map((cinemaRoom) => <CinemaRoomOption
+                                key={cinemaRoom.cinemaRoomId}>Зал {cinemaRoom.number}</CinemaRoomOption>)}
+                        </CinemaRoomSelect>
+                    </CinemaRoomContainer>
+                    <SeatsContainer>
+                        <Seat active></Seat>
+                        <Seat active></Seat>
+                        <Seat></Seat>
+                        <Seat active></Seat>
+                    </SeatsContainer>
                     <Button>Приобрести</Button>
                 </Right>
             </Container>
+            <Modal active={modalActive} setActive={setModalActive}>
+                <ModalContainer>
+                    <Title>Вы действительно хотите удалить фильм?</Title>
+                    <Button onClick={handleDelete}>Удалить</Button>
+                </ModalContainer>
+            </Modal>
         </Wrapper>
     )
 }

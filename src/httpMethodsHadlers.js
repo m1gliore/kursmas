@@ -9,13 +9,22 @@ const getMethod = async (url, set) => {
     }
 }
 
-const postMethod = async (event, url, myJson) => {
+const postMethod = async (event, url, myJson, config) => {
     event.preventDefault()
     try {
-        await publicRequest.post(url, myJson)
+        await publicRequest.post(url, myJson, config).then((res) => console.log(res.data))
     } catch (e) {
         alert(e)
     }
 }
 
-export {getMethod, postMethod}
+const deleteMethod = async (event, url, myJson) => {
+    event.preventDefault()
+    try {
+        await publicRequest.delete(url, myJson)
+    } catch (e) {
+        alert(e)
+    }
+}
+
+export {getMethod, postMethod, deleteMethod}

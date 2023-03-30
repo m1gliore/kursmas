@@ -2,7 +2,7 @@ import styled from "styled-components";
 import {Link, useNavigate} from "react-router-dom";
 import {Person, Search} from '@mui/icons-material';
 import logo from "../assets/images/logo.png"
-import {useState} from "react";
+import {useEffect, useState} from "react";
 import Modal from "./Modal";
 
 const Wrapper = styled.div``
@@ -109,9 +109,13 @@ const Registration = styled.span`
 const Navbar = () => {
 
     const navigate = useNavigate()
-    const [authorized, setAuthorized] = useState(true)
+    const [authorized, setAuthorized] = useState(false)
     const [modalActive, setModalActive] = useState(false)
     const [currentWindow, setCurrentWindow] = useState(null)
+
+    useEffect(() => {
+        setAuthorized(true)
+    }, [])
 
     return (
         <Wrapper>

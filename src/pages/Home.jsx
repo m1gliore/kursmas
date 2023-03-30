@@ -3,9 +3,11 @@ import {Schedule, ConfirmationNumber, Add, Download} from '@mui/icons-material';
 import {useNavigate} from "react-router-dom";
 import {useEffect, useState} from "react";
 import {getMethod, postMethod} from "../httpMethodsHadlers";
-import {month} from "../myLibrary";
+import {fileHandler, latinGenre, month, translitRuEn} from "../myLibrary";
 import Modal from "../components/Modal";
 import {DateTime} from "luxon";
+import defaultImage from "../assets/images/default_picture.png"
+import axios from "axios";
 
 const Wrapper = styled.div`
   margin: 1vw 5vw;
@@ -175,19 +177,53 @@ const Home = () => {
     const navigate = useNavigate()
     const [movies, setMovies] = useState([])
     const [modalActive, setModalActive] = useState(false)
+    const [file, setFile] = useState(null)
+    const [imageUrl, setImageUrl] = useState(defaultImage)
 
     useEffect(() => {
         getMethod(`http://localhost:8040/api/movies/findClientMovies`, [setMovies])
-    }, [])
+        fileHandler(file, setImageUrl)
+        console.log(file)
+    }, [file])
 
-    const handleSubmitAdd = (event) => {
-        postMethod(event, `http://localhost:8040/api/movies/saveNewMovie`,
-            {
-                title: event.target.title?.value
-            }).then(() => navigate(0))
+    const handleSubmitAdd = async (event) => {
+        // postMethod(event, `http://localhost:8040/api/movies/saveNewMovie`,
+        //     {
+        //         file: file,
+        //         nameMovie: event.target.nameMovie?.value,
+        //         startDate: event.target.startDate?.value,
+        //         endDate: event.target.endDate?.value,
+        //         timeLong: event.target.timeLong?.value,
+        //         ETypeMovie: latinGenre(event.target.ETypeMovie?.value),
+        //         price: event.target.price?.value,
+        //         age: event.target.age?.value,
+        //         youtube: event.target.youtube?.value,
+        //         latinName: translitRuEn(event.target.nameMovie?.value)
+        //     }, {
+        //         headers: {
+        //             "Content-Type": "multipart/form-data"
+        //         }
+        //     })
+
+        event.preventDefault()
+        let formData = new FormData()
+        let jsonBodyData = {
+            nameMovie: event.target.nameMovie?.value,
+            startDate: event.target.startDate?.value,
+            endDate: event.target.endDate?.value,
+            timeLong: event.target.timeLong?.value,
+            eTypeMovie: latinGenre(event.target.eTypeMovie?.value),
+            price: event.target.price?.value,
+            age: event.target.age?.value,
+            youtube: event.target.youtube?.value,
+            latinName: translitRuEn(event.target.nameMovie?.value)
+        }
+
+        formData.append('file', new Blob([file], {type: 'multipart/form-data'}))
+        formData.append('movieDTO', new Blob([JSON.stringify(jsonBodyData)], {type: 'application/json'}))
+
+        await axios.post('http://localhost:8040/api/movies/saveNewMovie', formData).then(() => window.location.reload())
     }
-
-    console.log(movies)
 
     return (
         <Wrapper>
@@ -218,21 +254,23 @@ const Home = () => {
                     <Title>Добавить фильм в прокат</Title>
                     <Form onSubmit={handleSubmitAdd}>
                         <LeftFormContainer>
-                            <FormImage/>
+                            <FormImage src={imageUrl} alt="Постер фильма"/>
                             <FormLabel style={{cursor: "pointer"}} htmlFor="file"><Download/></FormLabel>
-                            <FormInput required style={{display: "none"}} type="file" id="file"/>
+                            <FormInput required style={{display: "none"}} type="file" id="file"
+                                       onChange={event => setFile(event.target.files[0])}/>
                         </LeftFormContainer>
                         <RightFormContainer>
-                            <FormInput type="text" placeholder="Наименование фильма"/>
-                            <FormInput type="date" min={DateTime.now().toISO().split("T")[0]}
+                            <FormInput required type="text" name="nameMovie" placeholder="Наименование фильма"/>
+                            <FormInput required type="date" name="startDate" min={DateTime.now().toISO().split("T")[0]}
                                        placeholder="Старт показа"/>
-                            <FormInput type="date" min={DateTime.now().plus({days: 1}).toISO().split("T")[0]}
+                            <FormInput required type="date" name="endDate"
+                                       min={DateTime.now().plus({days: 1}).toISO().split("T")[0]}
                                        placeholder="Конец показа"/>
-                            <FormInput type="text" placeholder="Длительность"/>
-                            <FormInput type="text" placeholder="Жанры"/>
-                            <FormInput type="text" placeholder="Стоимость"/>
-                            <FormInput type="text" placeholder="Возрастное ограничение"/>
-                            <FormInput type="text" placeholder="ИД трейлера"/>
+                            <FormInput required type="number" name="timeLong" placeholder="Длительность"/>
+                            <FormInput required type="text" name="eTypeMovie" placeholder="Жанры"/>
+                            <FormInput required type="number" name="price" placeholder="Стоимость"/>
+                            <FormInput required type="number" name="age" placeholder="Возрастное ограничение"/>
+                            <FormInput required type="text" name="youtube" placeholder="ИД трейлера"/>
                             <FormButton>Добавить</FormButton>
                         </RightFormContainer>
                     </Form>
