@@ -1,12 +1,13 @@
 import styled from "styled-components";
-import YouTube from "react-youtube";
-import {genre, month} from "../myLibrary";
+import LiteYouTubeEmbed from 'react-lite-youtube-embed';
+import {genre, month, seancesDates} from "../myLibrary";
 import {useEffect, useState} from "react";
 import {useLocation, useNavigate} from "react-router-dom";
-import {deleteMethod, getMethod} from "../httpMethodsHadlers";
+import {deleteMethod, getMethod, postMethod, putMethod} from "../httpMethodsHadlers";
 import {DateTime} from "luxon";
-import {Delete} from "@mui/icons-material";
+import {Add, Delete, Person} from "@mui/icons-material";
 import Modal from "../components/Modal";
+import {TextField} from "@mui/material";
 
 const Wrapper = styled.div``
 
@@ -30,7 +31,7 @@ const Poster = styled.img`
 
 const TrailerContainer = styled.div`
   width: 18vw;
-  height: 12.9vw;
+  height: 10.1vw;
   border-radius: .5vw;
   overflow: hidden;
   z-index: 1;
@@ -45,6 +46,7 @@ const Right = styled.div`
 
 const Title = styled.h1`
   font-size: 1.75rem;
+  margin: ${props => props.reply && 0};
 `
 
 const DescriptionContainer = styled.div`
@@ -75,11 +77,21 @@ const Description = styled.span`
 const ScheduleContainer = styled.div`
   display: flex;
   flex-direction: column;
+  gap: 1vw;
 `
 
 const ScheduleDateContainer = styled.div`
   display: flex;
   gap: .5vw;
+`
+
+const AddIcon = styled(Add)`
+  cursor: pointer;
+  transition: .8s ease-out;
+
+  &:hover {
+    opacity: .5;
+  }
 `
 
 const ScheduleDateItem = styled.div`
@@ -127,11 +139,11 @@ const SeatsContainer = styled.div`
 const Seat = styled.div`
   width: 1.5vw;
   height: 1.5vw;
-  background-color: ${props => props.active ? "green" : "red"};
+  background-color: green;
   border-radius: 50%;
   cursor: pointer;
 
-  &:active {
+  &:active, &:hover {
     opacity: .5;
   }
 `
@@ -146,11 +158,77 @@ const Button = styled.button`
   font-size: 1rem;
   cursor: pointer;
   transition: .25s ease-out;
-  margin-bottom: 2vw;
 
   &:hover {
     opacity: 0.8;
   }
+`
+
+const RepliesContainer = styled.div`
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 2vw;
+`
+
+const TopRepliesContainerForm = styled.form`
+  display: flex;
+  flex-direction: column;
+  gap: 3vw;
+  padding: 2vw;
+  background-color: #efefef;
+  border-radius: .5vw;
+`
+
+const SetReply = styled.textarea`
+  width: 100%;
+  height: 5vw;
+`
+
+const BottomRepliesContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 2vw;
+  margin-bottom: 2vw;
+`
+
+const ReplyContainer = styled.div`
+  max-width: 30vw;
+  display: flex;
+  flex-direction: column;
+  gap: 1vw;
+  padding-top: 2vw;
+  border-top: .1vw #cccccc solid;
+`
+
+const ReplyInfo = styled.span`
+  display: flex;
+  align-items: center;
+  gap: 1vw;
+`
+
+const ReplyInfoLeft = styled.div``
+
+const ReplyIcon = styled(Person)``
+
+const ReplyInfoRight = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: .25vw;
+`
+
+const ReplyUsername = styled.span`
+  font-size: 1.5rem;
+`
+
+const ReplyDate = styled.span`
+  font-size: 1rem;
+  color: #a2a2a2;
+`
+
+const Reply = styled.span`
+  font-size: 1.25rem;
+  word-wrap: break-word;
 `
 
 const ModalContainer = styled.div`
@@ -161,23 +239,52 @@ const ModalContainer = styled.div`
   gap: 1.5rem;
 `
 
-const MovieInfo = () => {
+const Form = styled.form`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-evenly;
+  gap: 1vw;
+`
 
-    const opts = {
-        height: '225',
-        width: '325'
-    }
+const FormInput = styled.input`
+  margin-bottom: 10px;
+  padding: 10px;
+  border: 1px solid gray;
+  border-radius: 5px;
+
+  &:hover {
+    background-color: #f1f1f1;
+  }
+
+  &:focus {
+    outline: none;
+  }
+`
+
+const MovieInfo = () => {
 
     const movieId = useLocation().pathname.split("/")[2].split("-")[0]
     const [movie, setMovie] = useState({})
     const [cinemaRooms, setCinemaRooms] = useState([])
+    const [replies, setReplies] = useState([])
     const [modalActive, setModalActive] = useState(false)
+    const [action, setAction] = useState(0)
+    const [cinemaRoomNumber, setCinemaRoomNumber] = useState(1)
+    const indents = []
+    const [seances, setSeances] = useState([])
+    const [activeSit, setActiveSit] = useState(null)
+    const [activeTicket, setActiveTicket] = useState(null)
+    const [currentWindow, setCurrentWindow] = useState(null)
     const navigate = useNavigate()
 
     useEffect(() => {
         getMethod(`http://localhost:8040/api/movies/findMovie/${movieId}`, [setMovie])
         getMethod(`http://localhost:8040/api/cinema_room/findAllCinemaRoom`, [setCinemaRooms])
-    }, [movieId])
+        getMethod(`http://localhost:8040/api/reply/findConfirmReplies`, [setReplies])
+        getMethod(`http://localhost:8040/api/seances/findAllSeance/${movieId}/${cinemaRoomNumber}`, [setSeances])
+    }, [cinemaRoomNumber, movieId])
+
 
     cinemaRooms.sort((a, b) => {
         return a.number - b.number
@@ -189,6 +296,64 @@ const MovieInfo = () => {
         }).then(() => navigate("/"))
     }
 
+    const handleSubmitAdd = (event) => {
+        postMethod(event, `http://localhost:8040/api/seances/saveNewSeance/${event.target.cinemaRoom?.value}/${movieId}`, {
+            startTime: event.target.startDate?.value,
+            priceTicket: movie.price
+        }, {}, [{code: 403, message: "Данные введены неверно"}]).then(() => navigate(0))
+    }
+
+    const handleSubmitSend = (event) => {
+        postMethod(event, `http://localhost:8040/api/reply/saveNewReply`, {
+            description: event.target.description?.value,
+            username: "Ольга"
+        }, {}, [{code: 403, message: "Данные введены неверно"}]).then(() => navigate(0))
+    }
+
+    const handleClickBuy = (event) => {
+        console.log({
+            ticketId: activeTicket,
+            ETicketStatus: "BOUGHT"
+        })
+        putMethod(event, `http://localhost:8040/api/tickets/setTicket/Ольга`, {
+            ticketId: activeTicket,
+            ETicketStatus: "BOUGHT"
+        }, {}, [{code: 403, message: "Выберите место"}]).then(() => navigate(0))
+    }
+
+    cinemaRooms.map((cinemaRoom) => {
+        if (cinemaRoom.number === cinemaRoomNumber) {
+            for (let i = 0; i < cinemaRoom.numberOfSits; i++) {
+                indents.push(<Seat key={i} onClick={() => {
+                    setActiveSit(i + 1)
+                    setCurrentWindow("activeSit")
+                    setModalActive(true)
+                    seances.map((seance) => {
+                        return seance?.startTime === seancesDates[action] && setActiveTicket(seance?.ticketDTOSet[i]?.ticketId)
+                    })
+                }}></Seat>)
+            }
+        }
+        return indents
+    })
+
+
+    for (let i = 0; i < indents.length; i++) {
+        seances.map((seance) => seance.ticketDTOSet?.forEach((ticket) => {
+            if (seance?.startTime === seancesDates[action] && ticket.number === cinemaRoomNumber && ticket?.sit === i + 1
+                && ticket?.eticketStatus === "BOUGHT") {
+                indents[i] = <Seat key={i}
+                                   style={{backgroundColor: ticket.number === cinemaRoomNumber && ticket.sit === i + 1 && "red"}}></Seat>
+            }
+        }))
+    }
+
+    seances.map((seance) => {
+        return seance?.ticketDTOSet?.sort((a, b) => {
+            return a.ticketId - b.ticketId
+        })
+    })
+
     return (
         <Wrapper>
             <Container>
@@ -198,13 +363,18 @@ const MovieInfo = () => {
                             : "https://webgate.24guru.by/uploads/events/thumbs/300x430/1mGun5cpt.jpg"}
                         alt="Кот в сапогах"/>
                     <TrailerContainer>
-                        <YouTube videoId={movie.youtube} opts={opts} onReady={(event) => event.target.pauseVideo()}/>
+                        <LiteYouTubeEmbed id={movie.youtube} adNetwork={true} params="" playlist={false}
+                                          playlistCoverId={movie.youtube} poster="hqdefault" title="Кот в сапогах"
+                                          noCookie={true}/>
                     </TrailerContainer>
                 </Left>
                 <Right>
                     <TitleContainer>
                         <Title>{movie.nameMovie}</Title>
-                        <DeleteIcon fontSize="large" onClick={() => setModalActive(true)}/>
+                        <DeleteIcon fontSize="large" onClick={() => {
+                            setCurrentWindow("deleteMovie")
+                            setModalActive(true)
+                        }}/>
                     </TitleContainer>
                     <DescriptionContainer>
                         <Description>Даты показа:&nbsp;
@@ -217,36 +387,97 @@ const MovieInfo = () => {
                     </DescriptionContainer>
                     <ScheduleContainer>
                         <Title>Расписание</Title>
-                        <ScheduleDateContainer>
-                            <ScheduleDateItem>{DateTime.now().day} {month(DateTime.now().month)}</ScheduleDateItem>
-                            <ScheduleDateItem>{DateTime.now().plus({days: 1}).day} {month(DateTime.now().plus({days: 1}).month)}</ScheduleDateItem>
-                            <ScheduleDateItem>{DateTime.now().plus({days: 2}).day} {month(DateTime.now().plus({days: 2}).month)}</ScheduleDateItem>
-                            <ScheduleDateItem>{DateTime.now().plus({days: 3}).day} {month(DateTime.now().plus({days: 3}).month)}</ScheduleDateItem>
-                            <ScheduleDateItem>{DateTime.now().plus({days: 4}).day} {month(DateTime.now().plus({days: 4}).month)}</ScheduleDateItem>
-                            <ScheduleDateItem>{DateTime.now().plus({days: 5}).day} {month(DateTime.now().plus({days: 5}).month)}</ScheduleDateItem>
-                            <ScheduleDateItem>{DateTime.now().plus({days: 6}).day} {month(DateTime.now().plus({days: 6}).month)}</ScheduleDateItem>
+                        <ScheduleDateContainer onClick={(event) => {
+                            !isNaN(parseInt(event.target.dataset.action)) && setAction(parseInt(event.target.dataset.action))
+                        }}>
+                            <ScheduleDateItem
+                                data-action="0">{DateTime.now().day} {month(DateTime.now().month)}</ScheduleDateItem>
+                            <ScheduleDateItem
+                                data-action="1">{DateTime.now().plus({days: 1}).day} {month(DateTime.now().plus({days: 1}).month)}</ScheduleDateItem>
+                            <ScheduleDateItem
+                                data-action="2">{DateTime.now().plus({days: 2}).day} {month(DateTime.now().plus({days: 2}).month)}</ScheduleDateItem>
+                            <ScheduleDateItem
+                                data-action="3">{DateTime.now().plus({days: 3}).day} {month(DateTime.now().plus({days: 3}).month)}</ScheduleDateItem>
+                            <ScheduleDateItem
+                                data-action="4">{DateTime.now().plus({days: 4}).day} {month(DateTime.now().plus({days: 4}).month)}</ScheduleDateItem>
+                            <ScheduleDateItem
+                                data-action="5">{DateTime.now().plus({days: 5}).day} {month(DateTime.now().plus({days: 5}).month)}</ScheduleDateItem>
+                            <ScheduleDateItem
+                                data-action="6">{DateTime.now().plus({days: 6}).day} {month(DateTime.now().plus({days: 6}).month)}</ScheduleDateItem>
                         </ScheduleDateContainer>
+                        <AddIcon fontSize="large" onClick={() => {
+                            setCurrentWindow("addSeance")
+                            setModalActive(true)
+                        }}/>
                     </ScheduleContainer>
                     <CinemaRoomContainer>
                         <Title>Места в зале</Title>
-                        <CinemaRoomSelect>
-                            {cinemaRooms.map((cinemaRoom) => <CinemaRoomOption
-                                key={cinemaRoom.cinemaRoomId}>Зал {cinemaRoom.number}</CinemaRoomOption>)}
+                        <CinemaRoomSelect onChange={(event) => setCinemaRoomNumber(parseInt(event.target.value))}>
+                            {cinemaRooms.map((cinemaRoom) =>
+                                <CinemaRoomOption
+                                    key={cinemaRoom.cinemaRoomId}
+                                    value={cinemaRoom.number}>Зал {cinemaRoom.number}</CinemaRoomOption>)}
                         </CinemaRoomSelect>
                     </CinemaRoomContainer>
                     <SeatsContainer>
-                        <Seat active></Seat>
-                        <Seat active></Seat>
-                        <Seat></Seat>
-                        <Seat active></Seat>
+                        {seances.map((seance) => {
+                            return seance?.startTime === seancesDates[action] && seance?.ticketDTOSet[0]?.number ===
+                                cinemaRoomNumber && indents.map((indent) => indent)
+                        })}
+                        {seances.every((seance) => seance.startTime !== seancesDates[action]) &&
+                            <Title>Сеансы не найдены</Title>}
                     </SeatsContainer>
-                    <Button>Приобрести</Button>
+                    <Button onClick={handleClickBuy}>Приобрести</Button>
+                    <RepliesContainer>
+                        <TopRepliesContainerForm onSubmit={handleSubmitSend}>
+                            <Title reply>Отзывы {replies.length}</Title>
+                            <TextField required placeholder="Текст отзыва" name="description"
+                                       inputProps={{minLength: 15, style: {height: "100px"}}}
+                                       variant="filled" style={{height: "100px"}}
+                                       InputLabelProps={{style: {height: "100px"}}}
+                                       multiline={true}/>
+                            <Button>Оставить отзыв</Button>
+                        </TopRepliesContainerForm>
+                        <BottomRepliesContainer>
+                            {replies.map((reply) => <ReplyContainer key={reply.replyId}>
+                                <ReplyInfo>
+                                    <ReplyInfoLeft>
+                                        <ReplyIcon fontSize="medium"/>
+                                    </ReplyInfoLeft>
+                                    <ReplyInfoRight>
+                                        <ReplyUsername>{reply.username}</ReplyUsername>
+                                        <ReplyDate>{parseInt(reply.createReply?.split("-")[2])} {month(parseInt(reply.createReply?.split("-")[1]))} в
+                                            21:29</ReplyDate>
+                                    </ReplyInfoRight>
+                                </ReplyInfo>
+                                <Reply>{reply.description}</Reply>
+                            </ReplyContainer>)}
+                        </BottomRepliesContainer>
+                    </RepliesContainer>
                 </Right>
             </Container>
             <Modal active={modalActive} setActive={setModalActive}>
-                <ModalContainer>
+                <ModalContainer style={{display: currentWindow !== "deleteMovie" && "none"}}>
                     <Title>Вы действительно хотите удалить фильм?</Title>
                     <Button onClick={handleDelete}>Удалить</Button>
+                </ModalContainer>
+                <ModalContainer style={{display: currentWindow !== "addSeance" && "none"}}>
+                    <Title>Добавить новый сеанс</Title>
+                    <Form onSubmit={handleSubmitAdd}>
+                        <FormInput required type="date" name="startDate" min={DateTime.now().toISO().split("T")[0]}
+                                   max={DateTime.now().plus({days: 6}).toISO().split("T")[0]}
+                                   placeholder="Старт показа"/>
+                        <CinemaRoomSelect name="cinemaRoom">
+                            {cinemaRooms.map((cinemaRoom) =>
+                                <CinemaRoomOption
+                                    key={cinemaRoom?.cinemaRoomId}
+                                    value={cinemaRoom?.cinemaRoomId}>Зал {cinemaRoom?.number}</CinemaRoomOption>)}
+                        </CinemaRoomSelect>
+                        <Button>Добавить</Button>
+                    </Form>
+                </ModalContainer>
+                <ModalContainer style={{display: currentWindow !== "activeSit" && "none"}}>
+                    <Title>Место №{activeSit} выбрано</Title>
                 </ModalContainer>
             </Modal>
         </Wrapper>

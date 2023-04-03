@@ -12,6 +12,7 @@ const Wrapper = styled.div`
 
 const Container = styled.div`
   width: 100%;
+  min-height: 62.5vh;
   padding: .5rem 2rem;
   display: flex;
 `

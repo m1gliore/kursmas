@@ -1,3 +1,5 @@
+import {DateTime} from "luxon";
+
 const month = (month) => {
     let ruMonth = ""
 
@@ -145,4 +147,12 @@ function translitRuEn(str) {
     return Array.from(str).map(i => magic(i)).join("")
 }
 
-export {month, genre, fileHandler, translitRuEn, latinGenre}
+const seancesDates = [DateTime.now().toISO().split("T")[0],
+    DateTime.now().plus({days: 1}).toISO().split("T")[0],
+    DateTime.now().plus({days: 2}).toISO().split("T")[0],
+    DateTime.now().plus({days: 3}).toISO().split("T")[0],
+    DateTime.now().plus({days: 4}).toISO().split("T")[0],
+    DateTime.now().plus({days: 5}).toISO().split("T")[0],
+    DateTime.now().plus({days: 6}).toISO().split("T")[0]]
+
+export {month, genre, fileHandler, translitRuEn, latinGenre, seancesDates}

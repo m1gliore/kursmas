@@ -2,7 +2,7 @@ import styled from "styled-components";
 import {Schedule, ConfirmationNumber, Add, Download} from '@mui/icons-material';
 import {useNavigate} from "react-router-dom";
 import {useEffect, useState} from "react";
-import {getMethod, postMethod} from "../httpMethodsHadlers";
+import {getMethod} from "../httpMethodsHadlers";
 import {fileHandler, latinGenre, month, translitRuEn} from "../myLibrary";
 import Modal from "../components/Modal";
 import {DateTime} from "luxon";
