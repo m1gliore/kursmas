@@ -109,12 +109,12 @@ const Registration = styled.span`
 const Navbar = () => {
 
     const navigate = useNavigate()
-    const [authorized, setAuthorized] = useState(false)
+    const [authorized, setAuthorized] = useState(true)
     const [modalActive, setModalActive] = useState(false)
     const [currentWindow, setCurrentWindow] = useState(null)
 
     useEffect(() => {
-        setAuthorized(true)
+        setAuthorized(false)
     }, [])
 
     return (
@@ -131,11 +131,8 @@ const Navbar = () => {
                 </Center>
                 <Right>
                     {authorized ? <><Person/>
-                            <MenuItem onClick={() => navigate("/profile/mashina")}>Машина</MenuItem></> :
-                        <MenuItem onClick={() => {
-                            setModalActive(true)
-                            setCurrentWindow("login")
-                        }}>Войти</MenuItem>}
+                            <MenuItem onClick={() => navigate("/user/profile/mashina")}>Машина</MenuItem></> :
+                        <><Person/><MenuItem onClick={() => navigate("/admin/profile/admin")}>Админ</MenuItem></>}
                 </Right>
             </Container>
             <Modal active={modalActive} setActive={setModalActive}>

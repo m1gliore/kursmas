@@ -183,7 +183,6 @@ const Home = () => {
     useEffect(() => {
         getMethod(`http://localhost:8040/api/movies/findClientMovies`, [setMovies])
         fileHandler(file, setImageUrl)
-        console.log(file)
     }, [file])
 
     const handleSubmitAdd = async (event) => {
@@ -224,6 +223,8 @@ const Home = () => {
 
         await axios.post('http://localhost:8040/api/movies/saveNewMovie', formData).then(() => window.location.reload())
     }
+
+    console.log(movies)
 
     return (
         <Wrapper>
