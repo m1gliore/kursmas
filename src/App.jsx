@@ -8,12 +8,24 @@ import MovieInfo from "./pages/MovieInfo";
 import Profile from "./pages/Profile";
 import AdminPanel from "./pages/AdminPanel";
 import NotFound from "./pages/NotFound";
+import {useEffect, useState} from "react";
+import {useLocalStorage} from "react-use";
+import jwtDecode from "jwt-decode";
 
 const Wrapper = styled.div`
   overflow-x: hidden;
 `
 
 const App = () => {
+    const [isAdmin, setIsAdmin] = useState(false)
+    const [user,] = useLocalStorage("user")
+
+    useEffect(() => {
+        if (user) {
+            setIsAdmin(jwtDecode(user?.token).ADMIN)
+        }
+    }, [user])
+
     return (
         <Wrapper>
             <Router>
@@ -21,8 +33,9 @@ const App = () => {
                 <Routes>
                     <Route exact path="/" element={<Home/>}/>
                     <Route path="/movies/:movieId" element={<MovieInfo/>}/>
-                    <Route path="/user/profile/:userId" element={<Profile/>}/>
-                    <Route path="/admin/profile/:adminId" element={<AdminPanel/>}/>
+                    {isAdmin
+                        ? <Route path="/user/profile/:userId" element={<AdminPanel/>}/>
+                        : <Route path="/user/profile/:userId" element={<Profile/>}/>}
                     <Route exact path="*" element={<NotFound/>}/>
                 </Routes>
                 <Footer/>

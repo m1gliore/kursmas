@@ -1,9 +1,14 @@
 import styled from "styled-components";
 import {Link, useNavigate} from "react-router-dom";
-import {Person, Search} from '@mui/icons-material';
+import {Person} from '@mui/icons-material';
 import logo from "../assets/images/logo.png"
 import {useEffect, useState} from "react";
 import Modal from "./Modal";
+import {useForm} from "react-hook-form";
+import {getMethod, postMethod} from "../httpMethodsHandlers";
+import {useLocalStorage} from "react-use";
+import jwtDecode from "jwt-decode";
+import {Autocomplete, Stack, TextField} from "@mui/material";
 
 const Wrapper = styled.div``
 
@@ -19,22 +24,6 @@ const Left = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-`
-
-const SearchContainer = styled.div`
-  border: .1vw solid lightgray;
-  border-radius: .25vw;
-  display: flex;
-  align-items: center;
-  padding: 5px;
-`
-
-const Input = styled.input`
-  border: none;
-
-  &:focus {
-    outline: none;
-  }
 `
 
 const Center = styled.div`
@@ -53,6 +42,10 @@ const Right = styled.div`
   align-items: center;
   justify-content: center;
   gap: .5vw;
+`
+
+const MenuItem = styled.div`
+  font-size: 1.5rem;
   cursor: pointer;
 
   &:hover {
@@ -60,11 +53,7 @@ const Right = styled.div`
   }
 `
 
-const MenuItem = styled.div`
-  font-size: 1.5rem;
-`
-
-const ModalContainer = styled.div`
+const ModalContainer = styled.form`
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -109,13 +98,59 @@ const Registration = styled.span`
 const Navbar = () => {
 
     const navigate = useNavigate()
-    const [authorized, setAuthorized] = useState(true)
+    const [authorized, setAuthorized] = useState(false)
     const [modalActive, setModalActive] = useState(false)
     const [currentWindow, setCurrentWindow] = useState(null)
+    const {register, handleSubmit} = useForm()
+    const [user, setUser] = useLocalStorage("user")
+    const [username, setUsername] = useState("User")
+    const [searchValue, setSearchValue] = useState(null)
+    const [searchItems, setSearchItems] = useState([])
 
     useEffect(() => {
-        setAuthorized(false)
-    }, [])
+        if (user) {
+            setAuthorized(true)
+            setUsername(jwtDecode(user?.token).sub)
+        }
+        if (searchValue) {
+            getMethod(`http://localhost:8040/api/movies/searchMoviesByText/${searchValue}`, [setSearchItems],
+                {}, [{code: 403, message: "Неверный запрос"}, {code: 415, message: "Что-то пошло не так"}]
+            )
+        }
+    }, [searchValue, user])
+
+    const submitRegister = (data) => {
+        const formData = new FormData()
+        const username = data.usernameReg
+        const password = data.passwordReg
+        const rPassword = data.rPassword
+
+        if (password === rPassword) {
+            formData.append("username", username)
+            formData.append("password", password)
+            postMethod(`http://localhost:8040/api/users/registrationNewUser`, formData,
+                {}, [{code: 403, message: "Данные введены неверно"},
+                    {code: 415, message: "Что-то пошло не так"}, {
+                        code: 409,
+                        message: "Такой пользователь уже зарегистрирован"
+                    }],
+                [setUser], false).then(() => navigate(0))
+        } else {
+            alert("Пароли не совпадают")
+        }
+    }
+
+    const submitAuth = (data) => {
+        const formData = new FormData()
+        const username = data.usernameAuth
+        const password = data.passwordAuth
+
+        formData.append("username", username)
+        formData.append("password", password)
+        postMethod(`http://localhost:8040/api/users/authorization`, formData,
+            {}, [{code: 403, message: "Данные введены неверно"},
+                {code: 415, message: "Что-то пошло не так"}], [setUser], false).then(() => navigate(0))
+    }
 
     return (
         <Wrapper>
@@ -124,32 +159,57 @@ const Navbar = () => {
                     <Link style={{textDecoration: "none"}} to={"/"}><Logo src={logo} alt="Лого"/></Link>
                 </Left>
                 <Center>
-                    <SearchContainer>
-                        <Input placeholder="Поиск"/>
-                        <Search style={{color: "gray", fontSize: 16}}/>
-                    </SearchContainer>
+                    <Stack spacing={2} sx={{width: 300}}>
+                        <Autocomplete
+                            id="free-solo-demo"
+                            freeSolo
+                            options={searchItems?.map((option) => option.nameMovie)}
+                            renderInput={(params) => <TextField {...params} label="Поиск"/>}
+                            onInput={(event) => setSearchValue(event.target.value.trim())}
+                            onChange={(event) => {
+                                const selected = searchItems?.find((option) => option.nameMovie === event.target.innerText)
+                                navigate(`/movies/${selected?.movieId + "-" + selected?.latinName}`)
+                                navigate(0)
+                            }}
+                        />
+                    </Stack>
                 </Center>
                 <Right>
-                    {authorized ? <><Person/>
-                            <MenuItem onClick={() => navigate("/user/profile/mashina")}>Машина</MenuItem></> :
-                        <><Person/><MenuItem onClick={() => navigate("/admin/profile/admin")}>Админ</MenuItem></>}
+                    {authorized
+                        ? <><Person/><MenuItem
+                            onClick={() => navigate(`/user/profile/${username}`)}>{username}</MenuItem></>
+                        : <><MenuItem onClick={() => {
+                            setCurrentWindow("logup")
+                            setModalActive(true)
+                        }}
+                        >Зарегистрироваться</MenuItem>
+                            <MenuItem onClick={() => {
+                                setCurrentWindow("login")
+                                setModalActive(true)
+                            }}
+                            >Войти</MenuItem></>}
                 </Right>
             </Container>
             <Modal active={modalActive} setActive={setModalActive}>
-                <ModalContainer style={{display: currentWindow !== "login" && "none"}}>
+                <ModalContainer style={{display: currentWindow !== "login" && "none"}}
+                                onSubmit={handleSubmit(submitAuth)}>
                     <Title>Вход</Title>
-                    <AuthorizationInput type="text" placeholder="Имя пользователя"/>
-                    <AuthorizationInput type="password" placeholder="Пароль"/>
-                    <Button>Войти</Button>
+                    <AuthorizationInput required type="text" {...register("usernameAuth")}
+                                        placeholder="Имя пользователя"/>
+                    <AuthorizationInput required type="password" {...register("passwordAuth")} placeholder="Пароль"/>
+                    <Button type="submit">Войти</Button>
                     <Registration onClick={() => setCurrentWindow("logup")}>Нет аккаунта?
                         Зарегистрироваться</Registration>
                 </ModalContainer>
-                <ModalContainer style={{display: currentWindow !== "logup" && "none"}}>
+                <ModalContainer style={{display: currentWindow !== "logup" && "none"}}
+                                onSubmit={handleSubmit(submitRegister)}>
                     <Title>Регистрация</Title>
-                    <AuthorizationInput type="text" placeholder="Имя пользователя"/>
-                    <AuthorizationInput type="password" placeholder="Пароль"/>
-                    <AuthorizationInput type="password" placeholder="Повторите пароль"/>
-                    <Button>Зарегистрироваться</Button>
+                    <AuthorizationInput required type="text" {...register("usernameReg")}
+                                        placeholder="Имя пользователя"/>
+                    <AuthorizationInput required type="password" {...register("passwordReg")} placeholder="Пароль"/>
+                    <AuthorizationInput required type="password" {...register("rPassword")}
+                                        placeholder="Повторите пароль"/>
+                    <Button type="submit">Зарегистрироваться</Button>
                     <Registration onClick={() => setCurrentWindow("login")}>Есть аккаунт? Войти</Registration>
                 </ModalContainer>
             </Modal>

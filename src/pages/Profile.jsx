@@ -1,6 +1,8 @@
 import styled from "styled-components";
 import {useState} from "react";
 import Modal from "../components/Modal";
+import {useLocalStorage} from "react-use";
+import {useNavigate} from "react-router-dom";
 
 const Wrapper = styled.div`
   margin: 1vw 5vw;
@@ -138,6 +140,8 @@ const Profile = () => {
 
     const [currentWindow, setCurrentWindow] = useState("paid")
     const [modalActive, setModalActive] = useState(false)
+    const [, setUser] = useLocalStorage("user")
+    const navigate = useNavigate()
 
     return (
         <Wrapper>
@@ -187,7 +191,11 @@ const Profile = () => {
             <Modal active={modalActive} setActive={setModalActive}>
                 <ModalContainer>
                     <Title>Вы действительно хотите выйти со своего аккаунта?</Title>
-                    <Button>Выйти</Button>
+                    <Button onClick={() => {
+                        setUser("")
+                        navigate("/")
+                        navigate(0)
+                    }}>Выйти</Button>
                 </ModalContainer>
             </Modal>
         </Wrapper>
