@@ -1,8 +1,11 @@
 import styled from "styled-components";
-import {useState} from "react";
+import {useEffect, useState} from "react";
 import Modal from "../components/Modal";
 import {useLocalStorage} from "react-use";
 import {useNavigate} from "react-router-dom";
+import {getMethod} from "../httpMethodsHandlers";
+import jwtDecode from "jwt-decode";
+import {month} from "../myLibrary";
 
 const Wrapper = styled.div`
   margin: 1vw 5vw;
@@ -140,8 +143,28 @@ const Profile = () => {
 
     const [currentWindow, setCurrentWindow] = useState("paid")
     const [modalActive, setModalActive] = useState(false)
-    const [, setUser] = useLocalStorage("user")
+    const [user, setUser] = useLocalStorage("user")
+    const [username, setUsername] = useState("User")
     const navigate = useNavigate()
+    const [archiveTickets, setArchiveTickets] = useState([])
+    const [paidTickets, setPaidTickets] = useState([])
+
+    useEffect(() => {
+        if (user) {
+            setUsername(jwtDecode(user?.token).sub)
+        }
+        if (username !== "User") {
+            getMethod([{
+                url: `http://localhost:8040/api/tickets/getClientTicket/${username}/ARCHIVE`,
+                set: setArchiveTickets
+            }, {
+                url: `http://localhost:8040/api/tickets/getClientTicket/${username}/PAID`,
+                set: setPaidTickets
+            }], {}, [{code: 403, message: "Неверный запрос"}, {code: 415, message: "Что-то пошло не так"}])
+        }
+    }, [user, username])
+
+    console.log(archiveTickets)
 
     return (
         <Wrapper>
@@ -155,36 +178,30 @@ const Profile = () => {
                         <MenuItem onClick={() => setCurrentWindow("archived")}><MenuText>Архив</MenuText></MenuItem>
                     </RightMenu>
                     <TicketWindow style={{display: currentWindow === "paid" ? "flex" : "none"}}>
-                        <Ticket>
-                            <TicketContent>
-                                <TicketDescription>Фильм: Кот в сапогах 2: Последнее желание</TicketDescription>
-                                <TicketDescription>Дата: 5 апреля</TicketDescription>
-                                <TicketDescription>Стоимость: 55.00</TicketDescription>
-                            </TicketContent>
-                        </Ticket>
-                        <Ticket>
-                            <TicketContent>
-                                <TicketDescription>Фильм: Кот в сапогах 2: Последнее желание</TicketDescription>
-                                <TicketDescription>Дата: 5 апреля</TicketDescription>
-                                <TicketDescription>Стоимость: 55.00</TicketDescription>
-                            </TicketContent>
-                        </Ticket>
-                        <Ticket>
-                            <TicketContent>
-                                <TicketDescription>Фильм: Кот в сапогах 2: Последнее желание</TicketDescription>
-                                <TicketDescription>Дата: 5 апреля</TicketDescription>
-                                <TicketDescription>Стоимость: 55.00</TicketDescription>
-                            </TicketContent>
-                        </Ticket>
+                        {paidTickets?.map((ticket) =>
+                            <Ticket key={ticket?.ticketId}>
+                                <TicketContent>
+                                    <TicketDescription>Фильм: {ticket?.nameMovie}</TicketDescription>
+                                    <TicketDescription>
+                                        Дата: {parseInt(ticket?.startTime?.split("-")[2])} {month(parseInt(ticket?.startTime?.split("-")[1]))}
+                                    </TicketDescription>
+                                    <TicketDescription>Стоимость: {ticket?.price}.00</TicketDescription>
+                                </TicketContent>
+                            </Ticket>
+                        )}
                     </TicketWindow>
                     <TicketWindow style={{display: currentWindow === "archived" ? "flex" : "none"}}>
-                        <Ticket>
-                            <TicketContent>
-                                <TicketDescription>Фильм: Кот в сапогах 2: Последнее желание</TicketDescription>
-                                <TicketDescription>Дата: 5 апреля</TicketDescription>
-                                <TicketDescription>Стоимость: 55.00</TicketDescription>
-                            </TicketContent>
-                        </Ticket>
+                        {archiveTickets?.map((ticket) =>
+                            <Ticket key={ticket?.ticketId}>
+                                <TicketContent>
+                                    <TicketDescription>Фильм: {ticket?.nameMovie}</TicketDescription>
+                                    <TicketDescription>
+                                        Дата: {parseInt(ticket?.startTime?.split("-")[2])} {month(parseInt(ticket?.startTime?.split("-")[1]))}
+                                    </TicketDescription>
+                                    <TicketDescription>Стоимость: {ticket?.price}.00</TicketDescription>
+                                </TicketContent>
+                            </Ticket>
+                        )}
                     </TicketWindow>
                 </Right>
             </Container>

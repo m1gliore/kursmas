@@ -1,9 +1,11 @@
 import {publicRequest, userRequest} from "./requestMethods";
 
-const getMethod = async (url, set, config, codeAndMessage) => {
+const getMethod = async (urlSet, config, codeAndMessage) => {
     try {
-        const response = await publicRequest.get(url, config)
-        set.map((item) => item(response.data))
+        urlSet?.map(async (item) => {
+            const response = await publicRequest.get(item?.url, config)
+            item?.set(response.data)
+        })
     } catch (e) {
         const statusCode = e.response ? e.response.status : null
         let mes = ""

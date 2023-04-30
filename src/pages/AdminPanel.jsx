@@ -166,7 +166,10 @@ const AdminPanel = () => {
         try {
             if (currentItem === "Топ по дате") {
                 if (data.start && data.end) {
-                    getMethod(`http://localhost:8040/api/logic/top5ByDate`, [setTop5ByDate], {
+                    getMethod([{
+                        url: `http://localhost:8040/api/logic/top5ByDate`,
+                        set: setTop5ByDate
+                    }], {
                         params: {
                             "start": data.start,
                             "end": data.end
@@ -180,7 +183,10 @@ const AdminPanel = () => {
 
             if (currentItem === "Прибыль по дате") {
                 if (data.start && data.end) {
-                    getMethod(`http://localhost:8040/api/logic/profitByDate`, [setProfitByDate], {
+                    getMethod([{
+                        url: `http://localhost:8040/api/logic/profitByDate`,
+                        set: setProfitByDate
+                    }], {
                         params: {
                             "start": data.start,
                             "end": data.end
@@ -193,22 +199,34 @@ const AdminPanel = () => {
             }
 
             currentItem === "Топ по типу фильма" &&
-            getMethod(`http://localhost:8040/api/logic/topByTypeMovie`, [setTopByTypeMovie], {},
+            getMethod([{
+                    url: `http://localhost:8040/api/logic/topByTypeMovie`,
+                    set: setTopByTypeMovie
+                }], {},
                 [{code: 403, message: "Неверный запрос"}, {code: 415, message: "Что-то пошло не так"}])
                 .then(() => console.log(topByTypeMovie))
 
             currentItem === "Прибыль по фильмам" &&
-            getMethod(`http://localhost:8040/api/logic/getAllProfitByMovie`, [setAllProfitByMovie], {},
+            getMethod([{
+                    url: `http://localhost:8040/api/logic/getAllProfitByMovie`,
+                    set: setAllProfitByMovie
+                }], {},
                 [{code: 403, message: "Неверный запрос"}, {code: 415, message: "Что-то пошло не так"}])
                 .then(() => console.log(allProfitByMovie))
 
             currentItem === "Прибыль по фильму" &&
-            getMethod(`http://localhost:8040/api/logic/profitByMovie`, [setProfitByMovie], {},
+            getMethod([{
+                    url: `http://localhost:8040/api/logic/profitByMovie`,
+                    set: setProfitByMovie
+                }], {},
                 [{code: 403, message: "Неверный запрос"}, {code: 415, message: "Что-то пошло не так"}])
                 .then(() => console.log(profitByMovie))
 
             currentItem === "Отчёт" &&
-            getMethod(`http://localhost:8040/api/logic/getReportFile/DOC`, [setReportFile], {},
+            getMethod([{
+                url: `http://localhost:8040/api/logic/getReportFile/DOC`,
+                set: setReportFile
+            }], {},
                 [{code: 403, message: "Неверный запрос"}, {code: 415, message: "Что-то пошло не так"}])
                 .then(() => console.log(reportFile))
         } catch (e) {

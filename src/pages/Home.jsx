@@ -180,6 +180,7 @@ const FormButton = styled.button`
     opacity: 0.8;
   }
 `
+
 const LoadWindow = styled.div`
   height: 100vh;
   width: 100vw;
@@ -222,7 +223,10 @@ const Home = () => {
     const [isLoading, setIsLoading] = useState(true)
 
     useEffect(() => {
-        getMethod(`http://localhost:8040/api/movies/findClientMovies`, [setMovies], {})
+        getMethod([{
+            url: `http://localhost:8040/api/movies/findClientMovies`,
+            set: setMovies
+        }], {})
         fileHandler(file, setImageUrl)
         if (user) {
             setIsAdmin(jwtDecode(user?.token).ADMIN)

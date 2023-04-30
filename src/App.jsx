@@ -11,6 +11,9 @@ import NotFound from "./pages/NotFound";
 import {useEffect, useState} from "react";
 import {useLocalStorage} from "react-use";
 import jwtDecode from "jwt-decode";
+import CinemaRooms from "./pages/CinemaRooms";
+import Seances from "./pages/Seances";
+import Tickets from "./pages/Tickets";
 
 const Wrapper = styled.div`
   overflow-x: hidden;
@@ -33,6 +36,9 @@ const App = () => {
                 <Routes>
                     <Route exact path="/" element={<Home/>}/>
                     <Route path="/movies/:movieId" element={<MovieInfo/>}/>
+                    <Route path="/cinema-rooms" element={<CinemaRooms/>}/>
+                    <Route path="/seances" element={<Seances/>}/>
+                    <Route path="/tickets" element={<Tickets/>}/>
                     {isAdmin
                         ? <Route path="/user/profile/:userId" element={<AdminPanel/>}/>
                         : <Route path="/user/profile/:userId" element={<Profile/>}/>}

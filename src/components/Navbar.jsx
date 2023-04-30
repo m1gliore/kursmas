@@ -113,8 +113,10 @@ const Navbar = () => {
             setUsername(jwtDecode(user?.token).sub)
         }
         if (searchValue) {
-            getMethod(`http://localhost:8040/api/movies/searchMoviesByText/${searchValue}`, [setSearchItems],
-                {}, [{code: 403, message: "Неверный запрос"}, {code: 415, message: "Что-то пошло не так"}]
+            getMethod([{
+                    url: `http://localhost:8040/api/movies/searchMoviesByText/${searchValue}`,
+                    set: setSearchItems
+                }], {}, [{code: 403, message: "Неверный запрос"}, {code: 415, message: "Что-то пошло не так"}]
             )
         }
     }, [searchValue, user])
@@ -149,7 +151,10 @@ const Navbar = () => {
         formData.append("password", password)
         postMethod(`http://localhost:8040/api/users/authorization`, formData,
             {}, [{code: 403, message: "Данные введены неверно"},
-                {code: 415, message: "Что-то пошло не так"}], [setUser], false).then(() => navigate(0))
+                {code: 415, message: "Что-то пошло не так"}], [setUser], false)
+            .then(() => setTimeout(() => {
+                navigate(0)
+            }, 500))
     }
 
     return (
