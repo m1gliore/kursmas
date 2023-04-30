@@ -1,18 +1,24 @@
 import styled from "styled-components";
 import {
+    Cancel,
+    CheckCircle,
     DateRangeOutlined,
     EventNoteOutlined,
-    ForumOutlined, LocalMoviesOutlined,
+    ForumOutlined,
+    LocalMoviesOutlined,
     MovieFilterOutlined,
     MovieOutlined,
+    Person,
     ReportGmailerrorredOutlined
 } from "@mui/icons-material";
 import {useLocalStorage, useSessionStorage} from "react-use";
 import {useForm} from "react-hook-form";
-import {getMethod} from "../httpMethodsHandlers";
+import {getMethod, putMethod} from "../httpMethodsHandlers";
 import {useEffect, useState} from "react";
 import Modal from "../components/Modal";
 import {useNavigate} from "react-router-dom";
+import {Bar, BarChart, CartesianGrid, Legend, Tooltip, XAxis, YAxis} from "recharts";
+import {month} from "../myLibrary";
 
 const Wrapper = styled.div`
   margin: 1vw 5vw;
@@ -109,6 +115,10 @@ const Button = styled.button`
 
 const Right = styled.div`
   flex: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5vw;
 `
 
 const Title = styled.h1`
@@ -140,18 +150,99 @@ const ButtonDel = styled.button`
   }
 `
 
+const Table = styled.table`
+  width: 25vw;
+`
+
+const Caption = styled.caption`
+  font-size: 2rem;
+`
+
+const Tr = styled.tr`
+  font-size: 2rem;
+  text-align: center;
+`
+
+const Th = styled.th``
+
+const Td = styled.td``
+
+const RepliesContainer = styled.div`
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  width: 50vw;
+  gap: 2vw;
+  margin-bottom: 2vw;
+`
+
+const ReplyContainer = styled.div`
+  position: relative;
+  max-width: 30vw;
+  display: flex;
+  flex-direction: column;
+  gap: 1vw;
+  padding-top: 2vw;
+  border-top: .1vw #cccccc solid;
+`
+
+const ReplyInfo = styled.span`
+  display: flex;
+  align-items: center;
+  gap: 1vw;
+`
+
+const ReplyInfoLeft = styled.div``
+
+const ReplyIcon = styled(Person)``
+
+const ReplyInfoRight = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: .25vw;
+`
+
+const ReplyUsername = styled.span`
+  font-size: 1.5rem;
+`
+
+const ReplyDate = styled.span`
+  font-size: 1rem;
+  color: #a2a2a2;
+`
+
+const Reply = styled.span`
+  font-size: 1.25rem;
+  word-wrap: break-word;
+`
+
+const ReportContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1vw;
+`
+
+const Reports = styled.div`
+  display: flex;
+  justify-content: center;
+  gap: 1vw;
+  cursor: pointer;
+`
+
 const AdminPanel = () => {
     const [currentItem, setCurrentItem] = useSessionStorage("item", "Отзывы")
     const {register, handleSubmit} = useForm()
     const [profitByDate, setProfitByDate] = useState(null)
     const [top5ByDate, setTop5ByDate] = useState([])
-    const [topByTypeMovie, setTopByTypeMovie] = useState([])
+    const [topByTypeMovie, setTopByTypeMovie] = useState(null)
     const [profitByMovie, setProfitByMovie] = useState({})
-    const [allProfitByMovie, setAllProfitByMovie] = useState({})
+    const [allProfitByMovie, setAllProfitByMovie] = useState(null)
+    const [replies, setReplies] = useState([])
     const [reportFile, setReportFile] = useState(null)
     const [modalActive, setModalActive] = useState(false)
     const [, setUser] = useLocalStorage("user")
     const navigate = useNavigate()
+    const [type, setType] = useState("DOC")
 
     useEffect(() => {
         console.log(top5ByDate)
@@ -160,7 +251,14 @@ const AdminPanel = () => {
         console.log(profitByMovie)
         console.log(allProfitByMovie)
         console.log(reportFile)
-    }, [allProfitByMovie, profitByDate, profitByMovie, reportFile, top5ByDate, topByTypeMovie])
+        console.log(replies)
+    }, [allProfitByMovie, profitByDate, profitByMovie, replies, reportFile, top5ByDate, topByTypeMovie])
+
+    const data = []
+
+    for (let key in profitByMovie) {
+        data.push({"Фильм": key, "Прибыль": profitByMovie[key]})
+    }
 
     const submitDate = (data) => {
         try {
@@ -175,7 +273,6 @@ const AdminPanel = () => {
                             "end": data.end
                         }
                     }, [{code: 403, message: "Неверный запрос"}, {code: 415, message: "Что-то пошло не так"}])
-                        .then(() => console.log(top5ByDate))
                 } else {
                     alert("Введите даты")
                 }
@@ -192,19 +289,18 @@ const AdminPanel = () => {
                             "end": data.end
                         }
                     }, [{code: 403, message: "Неверный запрос"}, {code: 415, message: "Что-то пошло не так"}])
-                        .then(() => console.log(profitByDate))
                 } else {
                     alert("Введите даты")
                 }
             }
 
             currentItem === "Топ по типу фильма" &&
-            getMethod([{
-                    url: `http://localhost:8040/api/logic/topByTypeMovie`,
-                    set: setTopByTypeMovie
-                }], {},
-                [{code: 403, message: "Неверный запрос"}, {code: 415, message: "Что-то пошло не так"}])
-                .then(() => console.log(topByTypeMovie))
+            setTopByTypeMovie("Комедия")
+            // getMethod([{
+            //         url: `http://localhost:8040/api/logic/topByTypeMovie`,
+            //         set: setTopByTypeMovie
+            //     }], {},
+            //     [{code: 403, message: "Неверный запрос"}, {code: 415, message: "Что-то пошло не так"}])
 
             currentItem === "Прибыль по фильмам" &&
             getMethod([{
@@ -212,7 +308,6 @@ const AdminPanel = () => {
                     set: setAllProfitByMovie
                 }], {},
                 [{code: 403, message: "Неверный запрос"}, {code: 415, message: "Что-то пошло не так"}])
-                .then(() => console.log(allProfitByMovie))
 
             currentItem === "Прибыль по фильму" &&
             getMethod([{
@@ -220,18 +315,29 @@ const AdminPanel = () => {
                     set: setProfitByMovie
                 }], {},
                 [{code: 403, message: "Неверный запрос"}, {code: 415, message: "Что-то пошло не так"}])
-                .then(() => console.log(profitByMovie))
 
             currentItem === "Отчёт" &&
             getMethod([{
-                url: `http://localhost:8040/api/logic/getReportFile/DOC`,
-                set: setReportFile
-            }], {},
+                    url: `http://localhost:8040/api/logic/getReportFile/${type}`,
+                    set: setReportFile
+                }], {},
                 [{code: 403, message: "Неверный запрос"}, {code: 415, message: "Что-то пошло не так"}])
-                .then(() => console.log(reportFile))
+
+            currentItem === "Отзывы" &&
+            getMethod([{
+                    url: `http://localhost:8040/api/reply/findWaitingReplies`,
+                    set: setReplies
+                }], {},
+                [{code: 403, message: "Неверный запрос"}, {code: 415, message: "Что-то пошло не так"}])
         } catch (e) {
             alert(e)
         }
+    }
+
+    const handleCheck = (id, check) => {
+        putMethod(`http://localhost:8040/api/reply/setStatusReply/${id}/${check}`, null, {},
+            [{code: 403, message: "Неверный запрос"}, {code: 415, message: "Что-то пошло не так"}])
+            .then((navigate(0)))
     }
 
     return (
@@ -280,6 +386,77 @@ const AdminPanel = () => {
                     </Left>
                     <Right>
                         <Title>{currentItem}</Title>
+                        {currentItem === "Прибыль по фильму" && Object.keys(profitByMovie).length !== 0 &&
+                            <BarChart style={{display: data.length === 0 && "none"}} width={730} height={250}
+                                      data={data}>
+                                <CartesianGrid strokeDasharray="3 3"/>
+                                <XAxis dataKey="Фильм"/>
+                                <YAxis/>
+                                <Tooltip/>
+                                <Legend/>
+                                <Bar dataKey="Прибыль" fill="#8884d8"/>
+                            </BarChart>
+                        }
+                        {currentItem === "Топ по дате" && top5ByDate.length !== 0 &&
+                            <Table>
+                                <Caption>Топ фильмов по дате</Caption>
+                                <thead>
+                                <Tr>
+                                    <Th>Номер</Th>
+                                    <Th>Название</Th>
+                                </Tr>
+                                </thead>
+                                <tbody>
+                                {top5ByDate?.map((name, index) =>
+                                    <Tr key={index}>
+                                        <Td>{index + 1}</Td>
+                                        <Td>{name}</Td>
+                                    </Tr>
+                                )}
+                                </tbody>
+                            </Table>
+                        }
+                        {currentItem === "Прибыль по дате" && profitByDate &&
+                            <Title>Текущая прибыль по дате: {profitByDate} рублей</Title>
+                        }
+                        {currentItem === "Топ по типу фильма" && topByTypeMovie &&
+                            <Title>Самый популярный жанр: {topByTypeMovie}</Title>
+                        }
+                        {currentItem === "Прибыль по фильмам" && allProfitByMovie &&
+                            <Title>Текущая прибыль по фильмам: {allProfitByMovie} рублей</Title>
+                        }
+                        {currentItem === "Отзывы" &&
+                            <RepliesContainer>
+                                {replies?.map((reply) => <ReplyContainer key={reply?.replyId}>
+                                    <CheckCircle style={{cursor: "pointer", position: "absolute", right: "2vw"}}
+                                                 color="success"
+                                                 onClick={() => handleCheck(reply?.replyId, "CONFIRM")}/>
+                                    <Cancel style={{cursor: "pointer", position: "absolute", right: 0}} color="error"
+                                            onClick={() => handleCheck(reply?.replyId, "DELETED")}/>
+                                    <ReplyInfo>
+                                        <ReplyInfoLeft>
+                                            <ReplyIcon fontSize="medium"/>
+                                        </ReplyInfoLeft>
+                                        <ReplyInfoRight>
+                                            <ReplyUsername>{reply?.username}</ReplyUsername>
+                                            <ReplyDate>
+                                                {parseInt(reply?.createReply?.split("-")[2])} {month(parseInt(reply?.createReply?.split("-")[1]))}
+                                            </ReplyDate>
+                                        </ReplyInfoRight>
+                                    </ReplyInfo>
+                                    <Reply>{reply?.description}</Reply>
+                                </ReplyContainer>)}
+                            </RepliesContainer>
+                        }
+                        {currentItem === "Отчёт" &&
+                           <ReportContainer>
+                               <Title>Выберите формат отчёта</Title>
+                               <Reports>
+                                   <Title onClick={() => setType("DOC")}>DOC</Title>
+                                   <Title onClick={() => setType("TXT")}>TXT</Title>
+                               </Reports>
+                           </ReportContainer>
+                        }
                     </Right>
                 </Bottom>
             </Container>

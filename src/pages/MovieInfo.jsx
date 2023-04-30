@@ -287,6 +287,7 @@ const MovieInfo = () => {
     const [isLoading, setIsLoading] = useState(true)
     const [file, setFile] = useState(null)
     const [imageUrl, setImageUrl] = useState(defaultImage)
+    const [username, setUsername] = useState("User")
 
     useEffect(() => {
         getMethod([{
@@ -298,6 +299,7 @@ const MovieInfo = () => {
         }], {}, [{code: 403, message: "Данные введены неверно"}, {code: 415, message: "Что-то пошло не так"}])
         if (user) {
             setIsAdmin(jwtDecode(user?.token).ADMIN)
+            setUsername(jwtDecode(user?.token).sub)
         }
         fileHandler(file, setImageUrl)
     }, [file, movieId, user])
@@ -311,7 +313,7 @@ const MovieInfo = () => {
         const formData = new FormData()
         const description = data.descriptionSend
         formData.append("description", description)
-        formData.append("username", "Ольга")
+        formData.append("username", username)
         postMethod(`http://localhost:8040/api/reply/saveNewReply`, formData, {},
             [{code: 403, message: "Данные введены неверно"},
                 {code: 415, message: "Что-то пошло не так"}], [], true).then(() => navigate(0))
@@ -328,22 +330,28 @@ const MovieInfo = () => {
         const age = data.ageUpdate
         const youtube = data.youtubeUpdate
         const latinName = translitRuEn(data.nameMovieUpdate)
-        const file = data.fileUpdate[0]
+        file ? formData.append("file", file) : formData.append("file", new File([""], "filename.txt"))
         formData.append("movieId", movieId)
-        formData.append("nameMovie", nameMovie)
-        formData.append("startDate", startDate)
-        formData.append("endDate", endDate)
-        formData.append("timeLong", timeLong)
-        formData.append("eTypeMovie", eTypeMovie)
-        formData.append("price", price)
-        formData.append("age", age)
-        formData.append("youtube", youtube)
-        formData.append("latinName", latinName)
+        nameMovie && formData.append("nameMovie", nameMovie)
+        startDate && formData.append("startDate", startDate)
+        endDate && formData.append("endDate", endDate)
+        timeLong && formData.append("timeLong", timeLong)
+        eTypeMovie && formData.append("eTypeMovie", eTypeMovie)
+        price && formData.append("price", price)
+        age && formData.append("age", age)
+        youtube && formData.append("youtube", youtube)
+        nameMovie && formData.append("latinName", latinName)
         formData.append("file", file)
-        console.log(...formData)
-        console.log(JSON.parse(localStorage.getItem("user"))?.token)
         putMethod(`http://localhost:8040/api/movies/updateMovie`, formData, {},
-            [{code: 403, message: "Что-то пошло не так"}]).then(() => navigate(0))
+            [{code: 403, message: "Что-то пошло не так"}])
+            .then(() => {
+                if (nameMovie) {
+                    navigate(`/movies/${movieId + "-" + latinName}`)
+                    navigate(0)
+                } else {
+                    navigate(0)
+                }
+            })
     }
 
     return (
@@ -404,8 +412,9 @@ const MovieInfo = () => {
                                     </ReplyInfoLeft>
                                     <ReplyInfoRight>
                                         <ReplyUsername>{reply?.username}</ReplyUsername>
-                                        <ReplyDate>{parseInt(reply?.createReply?.split("-")[2])} {month(parseInt(reply?.createReply?.split("-")[1]))} в
-                                            21:29</ReplyDate>
+                                        <ReplyDate>
+                                            {parseInt(reply?.createReply?.split("-")[2])} {month(parseInt(reply?.createReply?.split("-")[1]))}
+                                        </ReplyDate>
                                     </ReplyInfoRight>
                                 </ReplyInfo>
                                 <Reply>{reply?.description}</Reply>
@@ -427,25 +436,32 @@ const MovieInfo = () => {
                                 "data:" + movie?.imageType + ";base64," + movie?.imagePoster}
                                        alt="Постер фильма"/>
                             <FormLabel style={{cursor: "pointer"}} htmlFor="fileAdd"><Download/></FormLabel>
-                            <FormInput required style={{opacity: 0, pointerEvents: "none"}} type="file"
+                            <FormInput style={{opacity: 0, pointerEvents: "none"}} type="file"
                                        id="fileAdd" {...register("fileUpdate")}
                                        onChange={event => setFile(event.target.files[0])} accept="image/*"/>
                         </LeftFormContainer>
                         <RightFormContainer>
-                            <FormInput required type="text" defaultValue={movie?.nameMovie} {...register("nameMovieUpdate")}
+                            <FormInput required type="text"
+                                       defaultValue={movie?.nameMovie} {...register("nameMovieUpdate")}
                                        placeholder="Наименование фильма"/>
-                            <FormInput required type="date" defaultValue={movie?.startDate} {...register("startDateUpdate")}
-                                       min={DateTime.now().toISO().split("T")[0]}
+                            <FormInput required type="date"
+                                       defaultValue={movie?.startDate} {...register("startDateUpdate")}
                                        placeholder="Старт показа"/>
                             <FormInput required type="date" defaultValue={movie?.endDate} {...register("endDateUpdate")}
                                        min={DateTime.now().plus({days: 1}).toISO().split("T")[0]}
                                        placeholder="Конец показа"/>
-                            <FormInput required type="number" defaultValue={movie?.timeLong} {...register("timeLongUpdate")} placeholder="Длительность"/>
-                            <FormInput required type="text" defaultValue={genre(movie?.etypeMovie)} {...register("eTypeMovieUpdate")} placeholder="Жанры"/>
-                            <FormInput required type="number" defaultValue={movie?.price} {...register("priceUpdate")} placeholder="Стоимость"/>
+                            <FormInput required type="number"
+                                       defaultValue={movie?.timeLong} {...register("timeLongUpdate")}
+                                       placeholder="Длительность"/>
+                            <FormInput required type="text"
+                                       defaultValue={genre(movie?.etypeMovie)} {...register("eTypeMovieUpdate")}
+                                       placeholder="Жанры"/>
+                            <FormInput required type="number" defaultValue={movie?.price} {...register("priceUpdate")}
+                                       placeholder="Стоимость"/>
                             <FormInput required type="number" defaultValue={movie?.age} {...register("ageUpdate")}
                                        placeholder="Возрастное ограничение"/>
-                            <FormInput required type="text" defaultValue={movie?.youtube} {...register("youtubeUpdate")} placeholder="ИД трейлера"/>
+                            <FormInput required type="text" defaultValue={movie?.youtube} {...register("youtubeUpdate")}
+                                       placeholder="ИД трейлера"/>
                             <FormButton>Изменить</FormButton>
                         </RightFormContainer>
                     </Form>

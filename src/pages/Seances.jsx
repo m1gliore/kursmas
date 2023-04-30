@@ -1,13 +1,17 @@
 import styled from "styled-components";
 import {DateTime} from "luxon";
 import {month, seancesDates} from "../myLibrary";
-import {useEffect, useState} from "react";
+import {useEffect, useRef, useState} from "react";
 import Modal from "../components/Modal";
 import {useLocation, useNavigate} from "react-router-dom";
-import {getMethod} from "../httpMethodsHandlers";
+import {getMethod, postMethod} from "../httpMethodsHandlers";
 import jwtDecode from "jwt-decode";
+import {useLocalStorage} from "react-use";
+import {useForm} from "react-hook-form";
+import {AddOutlined} from "@mui/icons-material";
 
 const Wrapper = styled.div`
+  position: relative;
   margin: 1vw 5vw;
   padding: 1vw;
   width: 90vw;
@@ -23,6 +27,18 @@ const Container = styled.div`
   flex-direction: column;
   align-items: center;
   gap: 10vw;
+`
+
+const AddIcon = styled(AddOutlined)`
+  position: absolute;
+  top: 1vw;
+  right: 3.5vw;
+  cursor: pointer;
+  transition: .8s ease-out;
+
+  &:hover {
+    opacity: .5;
+  }
 `
 
 const ScheduleContainer = styled.div`
@@ -81,28 +97,97 @@ const ModalContainer = styled.div`
   gap: 1.5rem;
 `
 
+const Form = styled.form`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-evenly;
+  gap: 1vw;
+`
+
+const FormInput = styled.input`
+  margin-bottom: 10px;
+  padding: 10px;
+  border: 1px solid gray;
+  border-radius: 5px;
+
+  &:hover {
+    background-color: #f1f1f1;
+  }
+
+  &:focus {
+    outline: none;
+  }
+`
+
 const Seances = () => {
+    const [isAdmin, setIsAdmin] = useState(false)
     const [action, setAction] = useState(0)
     const [currentDate, setCurrentDate] = useState(DateTime.now().day + " " + month(DateTime.now().month))
     const [modalActive, setModalActive] = useState(false)
     const navigate = useNavigate()
     const currentMovie = useLocation().search.split("&")[0].split("m=")[1]
-    const movieId = useLocation().search.split("&")[0].split("m=")[1].split("-")[0]
+    const movieId = parseInt(useLocation().search.split("&")[0].split("m=")[1].split("-")[0])
     const cinemaRoomNumber = parseInt(useLocation().search.split("&")[1].split("cr=")[1])
     const [seances, setSeances] = useState([])
     const [seanceId, setSeanceId] = useState(null)
+    const {register, handleSubmit} = useForm()
+    const [user,] = useLocalStorage("user")
+    const [currentWindow, setCurrentWindow] = useState(null)
+    const [movies, setMovies] = useState([])
+    const [cinemaRooms, setCinemaRooms] = useState([])
+    let priceTicket = 0
+    let number = 0
 
     useEffect(() => {
         getMethod([{
             url: `http://localhost:8040/api/seances/findAllSeance/${movieId}/${cinemaRoomNumber}`,
             set: setSeances
+        }, {
+            url: `http://localhost:8040/api/movies/findClientMovies`,
+            set: setMovies
+        }, {
+            url: `http://localhost:8040/api/cinema_room/findAllCinemaRoom`,
+            set: setCinemaRooms
         }], {}, [{code: 403, message: "Данные введены неверно"}, {code: 415, message: "Что-то пошло не так"}])
-    }, [cinemaRoomNumber, movieId])
+        if (user) {
+            setIsAdmin(jwtDecode(user?.token).ADMIN)
+        }
+    }, [cinemaRoomNumber, movieId, user])
 
-    console.log(seances)
+    useRef(movies?.map((movie) => {
+        if (movie?.movieId === movieId) {
+            return priceTicket = movie?.price
+        }
+        return null
+    }))
+
+    useRef(cinemaRooms?.map((cinemaRoom) => {
+        if (cinemaRoom?.cinemaRoomId === cinemaRoomNumber) {
+            return number = cinemaRoom?.number
+        }
+        return null
+    }))
+
+    const addSeance = (data) => {
+        const formData = new FormData()
+        const startTime = data.startTimeAdd
+        formData.append("startTime", startTime)
+        formData.append("priceTicket", priceTicket)
+        formData.append("number", number)
+        postMethod(`http://localhost:8040/api/seances/saveNewSeance/${cinemaRoomNumber}/${movieId}`, formData,
+            {}, [{code: 403, message: "Данные введены неверно"},
+                {code: 415, message: "Что-то пошло не так"}], [], true).then(() => navigate(0))
+    }
 
     return (
         <Wrapper>
+            {isAdmin &&
+                <AddIcon fontSize="large" onClick={() => {
+                    setCurrentWindow("add")
+                    setModalActive(true)
+                }}/>
+            }
             <Container>
                 <Title>Выберите дату сеанса</Title>
                 <ScheduleContainer>
@@ -111,6 +196,7 @@ const Seances = () => {
                         !isNaN(parseInt(event.target.dataset.action)) && setAction(parseInt(event.target.dataset.action))
                         setSeanceId(seances?.find((seance) => seance?.startTime === seancesDates[parseInt(event.target.dataset.action)])?.seanceId)
                         setCurrentDate(event.target.innerText)
+                        setCurrentWindow("date")
                         setModalActive(true)
                     }}>
                         <ScheduleDateItem
@@ -137,8 +223,18 @@ const Seances = () => {
                     }}>Выбрать</Button>
             </Container>
             <Modal active={modalActive} setActive={setModalActive}>
-                <ModalContainer>
+                <ModalContainer style={{display: currentWindow !== "date" && "none"}}>
                     <Title>Дата {currentDate} выбрана</Title>
+                </ModalContainer>
+                <ModalContainer style={{display: currentWindow !== "add" && "none"}}>
+                    <Title>Добавить новый сеанс</Title>
+                    <Form onSubmit={handleSubmit(addSeance)}>
+                        <FormInput required type="date" {...register("startTimeAdd")}
+                                   min={DateTime.now().toISO().split("T")[0]}
+                                   max={DateTime.now().plus({days: 6}).toISO().split("T")[0]}
+                                   placeholder="Номер зала"/>
+                        <Button>Добавить</Button>
+                    </Form>
                 </ModalContainer>
             </Modal>
         </Wrapper>

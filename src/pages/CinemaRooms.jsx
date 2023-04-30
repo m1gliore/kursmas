@@ -1,12 +1,15 @@
 import styled from "styled-components";
-import {DateTime} from "luxon";
 import Modal from "../components/Modal";
 import {useEffect, useState} from "react";
-import {getMethod, postMethod} from "../httpMethodsHandlers";
+import {deleteMethod, getMethod, postMethod} from "../httpMethodsHandlers";
 import {useForm} from "react-hook-form";
 import {useLocation, useNavigate} from "react-router-dom";
+import {AddOutlined, CreateOutlined, DeleteOutlined} from "@mui/icons-material";
+import {useLocalStorage} from "react-use";
+import jwtDecode from "jwt-decode";
 
 const Wrapper = styled.div`
+  position: relative;
   margin: 1vw 5vw;
   padding: 1vw;
   width: 90vw;
@@ -23,6 +26,42 @@ const Container = styled.div`
   align-items: center;
   justify-content: center;
   gap: 10vw;
+`
+
+const AddIcon = styled(AddOutlined)`
+  position: absolute;
+  top: 1vw;
+  right: 6vw;
+  cursor: pointer;
+  transition: .8s ease-out;
+
+  &:hover {
+    opacity: .5;
+  }
+`
+
+const UpdateIcon = styled(CreateOutlined)`
+  position: absolute;
+  top: 1vw;
+  right: 3.5vw;
+  cursor: pointer;
+  transition: .8s ease-out;
+
+  &:hover {
+    opacity: .5;
+  }
+`
+
+const DeleteIcon = styled(DeleteOutlined)`
+  position: absolute;
+  top: 1vw;
+  right: 1vw;
+  cursor: pointer;
+  transition: .8s ease-out;
+
+  &:hover {
+    opacity: .5;
+  }
 `
 
 const CinemaRoomContainer = styled.div`
@@ -96,68 +135,132 @@ const Button = styled.button`
 `
 
 const CinemaRooms = () => {
+
+    const [isAdmin, setIsAdmin] = useState(false)
     const [modalActive, setModalActive] = useState(false)
     const {register, handleSubmit} = useForm()
     const [cinemaRooms, setCinemaRooms] = useState([])
     const navigate = useNavigate()
-    const [cinemaRoomNumber, setCinemaRoomNumber] = useState(1)
+    const [cinemaRoomId, setCinemaRoomId] = useState(0)
     const currentMovie = useLocation().search.split("m=")[1]
+    const [user,] = useLocalStorage("user")
+    const [currentWindow, setCurrentWindow] = useState(null)
 
     useEffect(() => {
         getMethod([{
             url: `http://localhost:8040/api/cinema_room/findAllCinemaRoom`,
             set: setCinemaRooms
         }], {}, [{code: 403, message: "Данные введены неверно"}, {code: 415, message: "Что-то пошло не так"}])
-    }, [])
+        if (user) {
+            setIsAdmin(jwtDecode(user?.token).ADMIN)
+        }
+    }, [user])
 
     cinemaRooms?.sort((a, b) => {
         return a?.number - b?.number
     })
 
-    const handleSubmitAdd = (data) => {
+    const addCinemaRoom = (data) => {
         const formData = new FormData()
-        const startTime = data.startTimeAdd
-        //change
-        const priceTicket = data?.price
-        const cinemaRoom = data.cinemaRoomAdd ? data.cinemaRoomAdd : "1"
-        formData.append("startTime", startTime)
-        formData.append("priceTicket", priceTicket)
-        //change cinemaRoom2 to movieId?
-        postMethod(`http://localhost:8040/api/seances/saveNewSeance/${cinemaRoom}/${cinemaRoom}`, formData,
+        const number = data.numberAdd
+        const numberOfSits = data.numberOfSitsAdd
+        const description = data.descriptionAdd
+        formData.append("number", number)
+        formData.append("numberOfSits", numberOfSits)
+        formData.append("description", description)
+        postMethod(`http://localhost:8040/api/cinema_room/saveNewCinemaRoom`, formData,
             {}, [{code: 403, message: "Данные введены неверно"},
                 {code: 415, message: "Что-то пошло не так"}], [], true).then(() => navigate(0))
     }
 
+    const updateCinemaRoom = (data) => {
+        if (!cinemaRoomId) {
+            alert("Выберите зал")
+        } else {
+            const formData = new FormData()
+            const number = data.numberUpdate
+            const numberOfSits = data.numberOfSitsUpdate
+            const description = data.descriptionUpdate
+            formData.append("cinemaRoomId", cinemaRoomId)
+            formData.append("number", number)
+            formData.append("numberOfSits", numberOfSits)
+            formData.append("description", description)
+            postMethod(`http://localhost:8040/api/cinema_room/saveNewCinemaRoom`, formData,
+                {}, [{code: 403, message: "Данные введены неверно"},
+                    {code: 415, message: "Что-то пошло не так"}], [], true).then(() => navigate(0))
+        }
+    }
+
+    const deleteCinemaRoom = () => {
+        if (!cinemaRoomId) {
+            alert("Выберите зал")
+        } else {
+            deleteMethod(`http://localhost:8040/api/cinema_room/deleteCinemaRoom/${cinemaRoomId}`, {},
+                [{code: 403, message: "Данные введены неверно"},
+                    {code: 415, message: "Что-то пошло не так"}], [], true).then(() => navigate(0))
+        }
+    }
+
     return (
         <Wrapper>
+            {isAdmin &&
+                <>
+                    <AddIcon fontSize="large" onClick={() => {
+                        setCurrentWindow("add")
+                        setModalActive(true)
+                    }}/>
+                    <UpdateIcon fontSize="large" onClick={() => {
+                        setCurrentWindow("update")
+                        setModalActive(true)
+                    }}/>
+                    <DeleteIcon fontSize="large" onClick={() => {
+                        setCurrentWindow("delete")
+                        setModalActive(true)
+                    }}/>
+                </>
+            }
             <Container>
                 <Title>Выберите зал для сеанса</Title>
                 <CinemaRoomContainer>
                     <Title>Зал</Title>
-                    <CinemaRoomSelect onChange={(event) => setCinemaRoomNumber(parseInt(event.target.value))}>
+                    <CinemaRoomSelect defaultValue=""
+                                      onChange={(event) => setCinemaRoomId(parseInt(event.target.value))}>
+                        <CinemaRoomOption value="" disabled>Выберите зал</CinemaRoomOption>
                         {cinemaRooms?.map((cinemaRoom) =>
                             <CinemaRoomOption
                                 key={cinemaRoom?.cinemaRoomId}
-                                value={cinemaRoom?.number}>Номер {cinemaRoom?.number}</CinemaRoomOption>)}
+                                value={cinemaRoom?.cinemaRoomId}>Номер {cinemaRoom?.number}</CinemaRoomOption>)}
                     </CinemaRoomSelect>
                 </CinemaRoomContainer>
-                <Button onClick={() => navigate(`/seances?m=${currentMovie}&cr=${cinemaRoomNumber}`)}>Выбрать</Button>
+                <Button onClick={() => navigate(`/seances?m=${currentMovie}&cr=${cinemaRoomId}`)}>Выбрать</Button>
             </Container>
             <Modal active={modalActive} setActive={setModalActive}>
-                <ModalContainer>
-                    <Title>Добавить новый сеанс</Title>
-                    <Form onSubmit={handleSubmit(handleSubmitAdd)}>
-                        <FormInput required type="date" {...register("startTimeAdd")}
-                                   min={DateTime.now().toISO().split("T")[0]}
-                                   max={DateTime.now().plus({days: 6}).toISO().split("T")[0]}
-                                   placeholder="Старт показа"/>
-                        <CinemaRoomSelect {...register("cinemaRoomAdd")}>
-                            {cinemaRooms?.map((cinemaRoom) =>
-                                <CinemaRoomOption
-                                    key={cinemaRoom?.cinemaRoomId}
-                                    value={cinemaRoom?.cinemaRoomId}>Зал {cinemaRoom?.number}</CinemaRoomOption>)}
-                        </CinemaRoomSelect>
+                <ModalContainer style={{display: currentWindow !== "add" && "none"}}>
+                    <Title>Добавить новый зал</Title>
+                    <Form onSubmit={handleSubmit(addCinemaRoom)}>
+                        <FormInput required type="number" {...register("numberAdd")}
+                                   min="1" placeholder="Номер зала"/>
+                        <FormInput required type="number" {...register("numberOfSitsAdd")}
+                                   min="1" placeholder="Количество мест"/>
+                        <FormInput required type="text" {...register("descriptionAdd")} placeholder="Описание"/>
                         <Button>Добавить</Button>
+                    </Form>
+                </ModalContainer>
+                <ModalContainer style={{display: currentWindow !== "update" && "none"}}>
+                    <Title>Изменить зал</Title>
+                    <Form onSubmit={handleSubmit(updateCinemaRoom)}>
+                        <FormInput required type="number" {...register("numberUpdate")}
+                                   min="1" placeholder="Номер зала"/>
+                        <FormInput required type="number" {...register("numberOfSitsUpdate")}
+                                   min="1" placeholder="Количество мест"/>
+                        <FormInput required type="text" {...register("descriptionUpdate")} placeholder="Описание"/>
+                        <Button>Изменить</Button>
+                    </Form>
+                </ModalContainer>
+                <ModalContainer style={{display: currentWindow !== "delete" && "none"}}>
+                    <Title>Удалить зал</Title>
+                    <Form onSubmit={handleSubmit(deleteCinemaRoom)}>
+                        <Button>Удалить</Button>
                     </Form>
                 </ModalContainer>
             </Modal>
